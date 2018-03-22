@@ -27,7 +27,7 @@ let lire_graphe (nom_fichier : string) : ('a * 'a) list =
 			  "e"::x::y::[] -> ref_l_aretes := (int_of_string x, int_of_string y)::!ref_l_aretes
 			| _ -> ()
   		done ; !ref_l_aretes
-		with End_of_file -> close_in flux ; !ref_l_aretes
+		with End_of_file -> close_in flux ; !ref_l_aretes;;
 
 
 (* 
@@ -41,7 +41,7 @@ let miles750 = lire_graphe "miles750.col" (* 128 sommets *)
             PROGRAMMES
  *)
 
-let pop = function [] -> failwith "pas pop" | t::r -> t;;
+let head = function [] -> failwith "pas tete" | t::r -> t;;
 let tail = function [] -> [] | t::r -> r;;
 
 let rec appartient = fun elt -> fun liste ->
@@ -142,7 +142,7 @@ let gloutonDeg (graphe : ('a * 'a) list) =
     let rec aux (coul:int) (colPartielle: ('a * int) list) (nbCouleurs:int) (sommetsAColorer:'a list) (sommetsColores:'a list) =
         if (resteSommetsAColorier (sommets graphe) colPartielle) 
         then
-          (let s = (pop sommetsAColorer) in
+          (let s = (head sommetsAColorer) in
            let nouvCoul =  minNonUtilise (listeCouleurs graphe colPartielle s) in
            aux (if nouvCoul > coul then nouvCoul else coul)
                (colPartielle@[(s, nouvCoul)])
@@ -156,4 +156,41 @@ let gloutonDeg (graphe : ('a * 'a) list) =
 (**
         ALGO GLOUTON AVEC HEURISTIQUE DYNAMIQUE
 *)
+
+(** Calcul du nombre de couleurs différentes déjà affectées aux voisins de s
+    dans colPartielle
+ *)
+let dsat (graphe : ('a * 'a) list) (colPartielle : ('a * int) list) (sommet : 'a) : int =  
+    match (List.split (List.filter (fun (s,c) -> sontAdjacents graphe s sommet) colPartielle)) with
+    | [], _ -> 0
+    | sommets, couleurs -> List.length (List.sort_uniq (fun a b -> a-b) couleurs);;
+
+let score (graphe : ('a * 'a) list) (colPartielle : ('a * int) list) (sommet : 'a) : int =
+    1000 * (dsat graphe colPartielle sommet) + (nbVoisins graphe sommet);;
+
+let sommetsParDsat 
+    (graphe : ('a * 'a) list) 
+    (colPartielle : ('a * int) list) 
+    (sommetsAColorer : 'alist) 
+    : 'a list =
+    List.sort (fun a b -> (score graphe colPartielle b) - (score graphe colPartielle a)) sommetsAColorer;;
+    
+let gloutonDSat (graphe : ('a * 'a) list) = 
+    let rec aux (coul:int) (colPartielle: ('a * int) list) (nbCouleurs:int) (sommetsAColorer:'a list) (sommetsColores:'a list) =
+        if (resteSommetsAColorier (sommets graphe) colPartielle) 
+        then
+          (let s = (head (sommetsParDsat graphe colPartielle sommetsAColorer)) in
+           let nouvCoul =  minNonUtilise (listeCouleurs graphe colPartielle s) in
+           aux (if nouvCoul > coul then nouvCoul else coul)
+               (colPartielle@[(s, nouvCoul)])
+               (if (couleurDejaUtilisee colPartielle nouvCoul) then nbCouleurs + 1 else nbCouleurs)
+               (tail sommetsAColorer)
+               (sommetsColores@[s]))
+        else 
+            colPartielle, nbCouleurs, sommetsColores
+     in aux 1 [] 0 (sommetsParDegreDecroissant graphe) [];;     
+     
+     
+     
+
 
