@@ -129,10 +129,31 @@ let gloutonSansH (graphe : ('a * 'a) list) =
             colPartielle, nbCouleurs, sommetsColores
      in aux 1 [] 0 (sommets graphe) [];;                
                      
-                       
+(**
+         ALGORITHME GLOUTON AVEC HEURISTIQUE STATIQUE
+ *)                       
+let nbVoisins (graphe : ('a * 'a) list) (s : 'a) : int =  
+List.length (List.filter (function (a, b) -> (a = s || b = s)) graphe);;
             
-            
-         
+let sommetsParDegreDecroissant (graphe : ('a * 'a) list) : ('a list) = 
+    List.sort (fun a b -> (nbVoisins graphe b) - (nbVoisins graphe a)) (sommets graphe);; 
     
-    
+let gloutonDeg (graphe : ('a * 'a) list) = 
+    let rec aux (coul:int) (colPartielle: ('a * int) list) (nbCouleurs:int) (sommetsAColorer:'a list) (sommetsColores:'a list) =
+        if (resteSommetsAColorier (sommets graphe) colPartielle) 
+        then
+          (let s = (pop sommetsAColorer) in
+           let nouvCoul =  minNonUtilise (listeCouleurs graphe colPartielle s) in
+           aux (if nouvCoul > coul then nouvCoul else coul)
+               (colPartielle@[(s, nouvCoul)])
+               (if (couleurDejaUtilisee colPartielle nouvCoul) then nbCouleurs + 1 else nbCouleurs)
+               (tail sommetsAColorer)
+               (sommetsColores@[s]))
+        else 
+            colPartielle, nbCouleurs, sommetsColores
+     in aux 1 [] 0 (sommetsParDegreDecroissant graphe) [];;     
+     
+(**
+        ALGO GLOUTON AVEC HEURISTIQUE DYNAMIQUE
+*)
 
