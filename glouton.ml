@@ -37,12 +37,12 @@ let myciel5 = lire_graphe "myciel5.col" (* 47 sommets *)
 let miles750 = lire_graphe "miles750.col" (* 128 sommets *)
 *)
 
-(*****************************************************************************)
-(* Programme *)
-(*****************************************************************************)
+(**
+            PROGRAMMES
+ *)
 
-let sontAdjacents (graphe : ('a * 'a) list) (sommetA : 'a) (sommetB : 'a) : bool =
-    List.exists (fun (a, b) -> (a = sommetA && b = sommetB) || (a = sommetB && b = sommetA)) graphe;;
+let pop = function [] -> failwith "pas pop" | t::r -> t;;
+let tail = function [] -> [] | t::r -> r;;
 
 let rec appartient = fun elt -> fun liste ->
 	match liste with
@@ -53,12 +53,26 @@ let rec union = fun ensemble1 -> fun ensemble2 ->
 	match ensemble1 with 
 	  [] -> ensemble2
 	| a::l -> if (appartient a ensemble2) then (union ensemble2 l) else a::(union ensemble2 l);;
+	
+let rec inclus = fun ensPrincipal -> fun ensInclus ->
+	match ensInclus with
+	 [] -> true
+	| a::l -> (appartient a ensPrincipal) && (inclus ensPrincipal l);;
 
+let rec egalite = fun ensemble1 -> fun ensemble2 ->
+	(inclus ensemble1 ensemble2) && (inclus ensemble2 ensemble1);;
+	
+(** Savoir si deux somments sont adjacents *)
+let sontAdjacents (graphe : ('a * 'a) list) (sommetA : 'a) (sommetB : 'a) : bool =
+    List.exists (fun (a, b) -> (a = sommetA && b = sommetB) || (a = sommetB && b = sommetA)) graphe;;
+
+(** Sommets du graphes *)
 let rec sommets (graphe : ('a * 'a) list) : 'a list =
     match graphe with
     | (a, b)::reste -> union [a; b] (sommets reste)
     | _ -> [];;
     
+(** Voisins d'un somment *)
 let listeVoisins (graphe : ('a * 'a) list) (sommet : 'a) : 'a list =
     let sommets = (sommets graphe) in
     let rec aux = fun s ->
@@ -67,7 +81,7 @@ let listeVoisins (graphe : ('a * 'a) list) (sommet : 'a) : 'a list =
         | [] -> []
     in aux sommets;;
     
-(* GLOUTON *)
+(** Liste des couleurs utilisées pour colorer les voisins d'un sommet *)
 let rec listeCouleurs (graphe : ('a * 'a) list) (colPartielle : ('a * 'int) list) (s : 'a) : (int list) =
     match colPartielle with
       (som, col):: reste -> if (sontAdjacents graphe s som) 
@@ -75,6 +89,7 @@ let rec listeCouleurs (graphe : ('a * 'a) list) (colPartielle : ('a * 'int) list
                             else (listeCouleurs graphe reste s)
     | [] -> [];;
     
+(** Plus petit entier non encore utilisé dans une liste d'entiers *)    
 let minNonUtilise = fun l -> 
     let rec trouver = fun entier l -> match l with
     | []      -> entier + 1
@@ -82,23 +97,15 @@ let minNonUtilise = fun l ->
                  then trouver x lbis
                  else entier + 1 in 
                  trouver 0 (List.sort_uniq (fun x y -> x-y) l);;
-                       
-let rec inclus = fun ensPrincipal -> fun ensInclus ->
-	match ensInclus with
-	 [] -> true
-	| a::l -> (appartient a ensPrincipal) && (inclus ensPrincipal l);;
-
-let rec egalite = fun ensemble1 -> fun ensemble2 ->
-	(inclus ensemble1 ensemble2) && (inclus ensemble2 ensemble1);;          
-     
+                                
+(** Vrai s'il reste des sommets à coloriers en fonction de
+    la liste des sommets du graphe et de la coloration partielle *)  
 let resteSommetsAColorier (lesSommets : 'a list) (colPartielle : ('a * int) list) : bool =
     match (List.split colPartielle) with
     [], _ -> true
     | l1, l2 -> not (egalite l1 lesSommets);;   
 
-let pop = function [] -> failwith "pas pop" | t::r -> t;;
-let tail = function [] -> [] | t::r -> r;;
-
+(** Vrai si colPartielle contient c *)
 let couleurDejaUtilisee = fun colPartielle c ->
     match (List.split colPartielle) with
     | ([], _) -> false
